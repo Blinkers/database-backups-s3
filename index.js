@@ -81,7 +81,7 @@ async function processBackup() {
         versionCommand = 'mongodump --version';
         break;
       case 'mysql':
-        dumpCommand = `mysqldump -u ${dbUser} -p${dbPassword} -h ${dbHostname} -P ${dbPort} ${dbName} > "${filepath}.dump"`;
+        dumpCommand = `mysqldump --skip-ssl -u ${dbUser} -p${dbPassword} -h ${dbHostname} -P ${dbPort} ${dbName} > "${filepath}.dump"`;
         versionCommand = 'mysql --version';
         break;
       default:
