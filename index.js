@@ -86,6 +86,7 @@ async function processBackup() {
         dbPort,
         passwordLength: dbPassword ? dbPassword.length : 'undefined'
     });
+    
   
     const date = new Date();
     const yyyy = date.getFullYear();
