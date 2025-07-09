@@ -48,13 +48,44 @@ async function processBackup() {
     const databaseIteration = index + 1;
     const totalDatabases = config.databases.length;
 
+    console.log('Database URI:', databaseURI);
+    console.log('Database URI type:', typeof databaseURI);
+    console.log('Database URI length:', databaseURI ? databaseURI.length : 'undefined');
+    console.log('Attempting to parse URL:', databaseURI);
+    
+    // Vérifiez que l'URL n'est pas undefined/null
+    if (!databaseURI) {
+        throw new Error('Database URI is undefined or null');
+    }
+    
+    // Vérifiez que l'URL commence bien par mysql://
+    if (!databaseURI.startsWith('mysql://')) {
+        throw new Error('Database URI does not start with mysql://');
+    }
+    
     const url = new URL(databaseURI);
+    console.log('Parsed URL successfully:', {
+        protocol: url.protocol,
+        hostname: url.hostname,
+        port: url.port,
+        username: url.username,
+        pathname: url.pathname
+    });
     const dbType = url.protocol.slice(0, -1); // remove trailing colon
     const dbName = url.pathname.substring(1); // extract db name from URL
     const dbHostname = url.hostname;
     const dbUser = url.username;
     const dbPassword = url.password;
     const dbPort = url.port;
+
+    console.log('Extracted values:', {
+        dbType,
+        dbName,
+        dbHostname,
+        dbUser,
+        dbPort,
+        passwordLength: dbPassword ? dbPassword.length : 'undefined'
+    });
   
     const date = new Date();
     const yyyy = date.getFullYear();
@@ -81,7 +112,9 @@ async function processBackup() {
         versionCommand = 'mongodump --version';
         break;
       case 'mysql':
-        dumpCommand = `mysqldump --skip-ssl -u ${dbUser} -p${dbPassword} -h ${dbHostname} -P ${dbPort} ${dbName} > "${filepath}.dump"`;
+        const escapedPassword = dbPassword.replace(/'/g, "'\"'\"'");
+        dumpCommand = `mysqldump --skip-ssl -u '${dbUser}' -p'${escapedPassword}' -h '${dbHostname}' -P ${dbPort} '${dbName}' > "${filepath}.dump"`;
+        //dumpCommand = `mysqldump --skip-ssl -u ${dbUser} -p${dbPassword} -h ${dbHostname} -P ${dbPort} ${dbName} > "${filepath}.dump"`;
         versionCommand = 'mysql --version';
         break;
       default:
