@@ -126,37 +126,72 @@ async function processBackup() {
     try {
       // Log database client version
       try {
+        console.log('Executing version command:', versionCommand);
         const { stdout: versionOutput } = await exec(versionCommand);
         console.log(`Using ${dbType} client version:`, versionOutput.trim());
       } catch (versionError) {
         console.warn(`Failed to get ${dbType} client version:`, versionError.message);
       }
-
+      
       // 1. Execute the dump command
-      await exec(dumpCommand);
-
+      console.log('About to execute dump command:', dumpCommand);
+      try {
+        await exec(dumpCommand);
+        console.log('✓ Dump command executed successfully');
+      } catch (dumpError) {
+        console.error('❌ Dump command failed:', dumpError.message);
+        console.error('❌ Dump command stderr:', dumpError.stderr);
+        console.error('❌ Dump command stdout:', dumpError.stdout);
+        throw dumpError;
+      }
+      
       // 2. Compress the dump file
-      await exec(`tar -czvf ${filepath} ${filepath}.dump`);
-
+      console.log('About to compress dump file...');
+      try {
+        await exec(`tar -czvf ${filepath} ${filepath}.dump`);
+        console.log('✓ Compression completed');
+      } catch (compressError) {
+        console.error('❌ Compression failed:', compressError.message);
+        throw compressError;
+      }
+      
       // 3. Read the compressed file
-      const data = fs.readFileSync(filepath);
-
+      console.log('About to read compressed file...');
+      try {
+        const data = fs.readFileSync(filepath);
+        console.log('✓ File read successfully, size:', data.length);
+      } catch (readError) {
+        console.error('❌ File read failed:', readError.message);
+        throw readError;
+      }
+      
       // 4. Upload to S3
-      const params = {
-        Bucket: config.aws.s3_bucket,
-        Key: filename,
-        Body: data
-      };
-
-      const putCommand = new s3.PutObjectCommand(params);
-      await s3Client.send(putCommand);
+      console.log('About to upload to S3...');
+      try {
+        const params = {
+          Bucket: config.aws.s3_bucket,
+          Key: filename,
+          Body: data
+        };
+        const putCommand = new s3.PutObjectCommand(params);
+        await s3Client.send(putCommand);
+        console.log('✓ S3 upload completed');
+      } catch (s3Error) {
+        console.error('❌ S3 upload failed:', s3Error.message);
+        throw s3Error;
+      }
       
       console.log(`✓ Successfully uploaded db backup for database ${dbType} ${dbName} ${dbHostname}.`);
-
+      
       // 5. Clean up temporary files
+      console.log('Cleaning up temporary files...');
       await exec(`rm -f ${filepath} ${filepath}.dump`);
+      console.log('✓ Cleanup completed');
+      
     } catch (error) {
       console.error(`An error occurred while processing the database ${dbType} ${dbName}, host: ${dbHostname}): ${error}`);
+      console.error('Full error object:', error);
+      console.error('Error stack:', error.stack);
     }
   }
 }
