@@ -135,51 +135,29 @@ async function processBackup() {
       
       // 1. Execute the dump command
       console.log('About to execute dump command:', dumpCommand);
-      try {
-        await exec(dumpCommand);
-        console.log('✓ Dump command executed successfully');
-      } catch (dumpError) {
-        console.error('❌ Dump command failed:', dumpError.message);
-        console.error('❌ Dump command stderr:', dumpError.stderr);
-        console.error('❌ Dump command stdout:', dumpError.stdout);
-        throw dumpError;
-      }
+      await exec(dumpCommand);
+      console.log('✓ Dump command executed successfully');
       
       // 2. Compress the dump file
       console.log('About to compress dump file...');
-      try {
-        await exec(`tar -czvf ${filepath} ${filepath}.dump`);
-        console.log('✓ Compression completed');
-      } catch (compressError) {
-        console.error('❌ Compression failed:', compressError.message);
-        throw compressError;
-      }
+      await exec(`tar -czvf ${filepath} ${filepath}.dump`);
+      console.log('✓ Compression completed');
       
       // 3. Read the compressed file
       console.log('About to read compressed file...');
-      try {
-        const data = fs.readFileSync(filepath);
-        console.log('✓ File read successfully, size:', data.length);
-      } catch (readError) {
-        console.error('❌ File read failed:', readError.message);
-        throw readError;
-      }
+      const data = fs.readFileSync(filepath); // DÉCLARER data ICI
+      console.log('✓ File read successfully, size:', data.length);
       
       // 4. Upload to S3
       console.log('About to upload to S3...');
-      try {
-        const params = {
-          Bucket: config.aws.s3_bucket,
-          Key: filename,
-          Body: data
-        };
-        const putCommand = new s3.PutObjectCommand(params);
-        await s3Client.send(putCommand);
-        console.log('✓ S3 upload completed');
-      } catch (s3Error) {
-        console.error('❌ S3 upload failed:', s3Error.message);
-        throw s3Error;
-      }
+      const params = {
+        Bucket: config.aws.s3_bucket,
+        Key: filename,
+        Body: data // data est maintenant accessible ici
+      };
+      const putCommand = new s3.PutObjectCommand(params);
+      await s3Client.send(putCommand);
+      console.log('✓ S3 upload completed');
       
       console.log(`✓ Successfully uploaded db backup for database ${dbType} ${dbName} ${dbHostname}.`);
       
